@@ -1,0 +1,9 @@
+{
+  "name": "lockedin-arena",
+  "version": "1.0.0",
+  "description": "Real-time 1v1 Competitive Programming Lockout Duel Web Application",
+  "scripts": {
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev"
+  }
+}
