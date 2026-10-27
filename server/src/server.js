@@ -13,20 +13,28 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+  'http://localhost:5173',
+  ...(process.env.CLIENT_URL || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+];
+const corsOptions = {
+  origin: [...new Set(allowedOrigins)],
+  methods: ['GET', 'POST', 'PATCH'],
+  credentials: true
+};
 
 // Socket.io Setup
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PATCH'],
-    credentials: true
-  }
+  cors: corsOptions
 });
 
 configureDuelSockets(io);
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10kb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/matches', matchRoutes);
