@@ -5,6 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
+const matchRoutes = require('./routes/match.routes');
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ const io = new Server(server, {
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json({ limit: '10kb' }));
 app.use('/api/auth', authRoutes);
+app.use('/api/matches', matchRoutes);
 
 // Health Check Route
 app.get('/api/health', (req, res) => {

@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { ArrowUpRight, BadgeCheck, Crosshair, Crown, Plus, Swords, Target, Trophy, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 import VerifyHandleModal from '../components/VerifyHandleModal'
+import CreateDuelModal from '../components/CreateDuelModal'
 
 function MetricCard({ label, value, note, icon: Icon, accent = false }) {
   return (
@@ -15,9 +18,13 @@ function MetricCard({ label, value, note, icon: Icon, accent = false }) {
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [showVerification, setShowVerification] = useState(false)
+  const [showCreateDuel, setShowCreateDuel] = useState(false)
   const [roomCode, setRoomCode] = useState('')
   const [notice, setNotice] = useState('')
+  const [noticeType, setNoticeType] = useState('error')
+  const [joining, setJoining] = useState(false)
 
   const stats = user?.stats || {}
   const totalMatches = Number(stats.totalMatches || 0)
@@ -27,17 +34,36 @@ export default function Dashboard() {
   const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0
 
   function handleCreateDuel() {
-    setNotice('DUEL LOBBIES ARE NOT AVAILABLE YET. Your player profile is ready for the next arena update.')
+    setNotice('')
+    if (!user?.isVerified) {
+      setNoticeType('error')
+      setNotice('Verify your Codeforces handle before creating a duel.')
+      setShowVerification(true)
+      return
+    }
+    setShowCreateDuel(true)
   }
 
-  function handleJoinDuel(event) {
+  async function handleJoinDuel(event) {
     event.preventDefault()
     setNotice('')
     if (!/^[A-Z0-9]{6}$/.test(roomCode.trim().toUpperCase())) {
+      setNoticeType('error')
       setNotice('ROOM CODES MUST BE EXACTLY 6 LETTERS OR NUMBERS.')
       return
     }
-    setNotice('ROOM CODE ACCEPTED. Live duel rooms are not available yet.')
+
+    setJoining(true)
+    try {
+      const { data } = await api.post('/matches/join', { roomCode: roomCode.trim().toUpperCase() })
+      const joinedRoomCode = data.match?.roomCode || roomCode.trim().toUpperCase()
+      navigate(`/lobby/${encodeURIComponent(joinedRoomCode)}`)
+    } catch (requestError) {
+      setNoticeType('error')
+      setNotice(requestError.response?.data?.message || requestError.message || 'Could not enter that arena.')
+    } finally {
+      setJoining(false)
+    }
   }
 
   return (
@@ -75,7 +101,7 @@ export default function Dashboard() {
           <div className="action-card-head"><span>01 / HOST A MATCH</span><Swords size={18} /></div>
           <div className="action-title">CREATE<br />DUEL<span className="red-period">.</span></div>
           <p>Host a customized lockout match.</p>
-          <button className="action-button action-button-red" onClick={handleCreateDuel} type="button">
+          <button className="action-button action-button-red" disabled={joining} onClick={handleCreateDuel} type="button">
             <Plus size={17} /> CREATE DUEL
           </button>
         </article>
@@ -95,12 +121,19 @@ export default function Dashboard() {
               placeholder="ROOM CODE"
               value={roomCode}
             />
-            <button className="action-button action-button-outline" type="submit">ENTER ARENA <ArrowUpRight size={16} /></button>
+            <button className="action-button action-button-outline" disabled={joining} type="submit">
+              {joining ? 'CONNECTING...' : <>ENTER ARENA <ArrowUpRight size={16} /></>}
+            </button>
           </form>
         </article>
       </section>
 
-      {notice && <div className="dashboard-notice" role="status">{notice}</div>}
+      {notice && (
+        <div className={`dashboard-notice ${noticeType === 'success' ? 'dashboard-notice-success' : ''}`} role="alert">
+          <span>{notice}</span>
+          <button aria-label="Dismiss message" onClick={() => setNotice('')} type="button">×</button>
+        </div>
+      )}
 
       <section aria-label="Combat statistics" className="stats-section">
         <div className="section-heading"><span>COMBAT RECORD</span><span>CAREER / ALL TIME</span></div>
@@ -124,6 +157,7 @@ export default function Dashboard() {
       <footer className="dashboard-footer"><span>LOCKEDIN // ARENA</span><span>NO GLORY WITHOUT THE GRIND.</span></footer>
 
       {showVerification && <VerifyHandleModal onClose={() => setShowVerification(false)} />}
+      {showCreateDuel && <CreateDuelModal onClose={() => setShowCreateDuel(false)} />}
     </main>
   )
 }
