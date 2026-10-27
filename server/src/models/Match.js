@@ -77,7 +77,7 @@ const matchSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['LOBBY', 'STARTING', 'ACTIVE', 'FINISHED', 'ABANDONED'],
+      enum: ['LOBBY', 'STARTING', 'ACTIVE', 'SETTLING', 'FINISHED', 'ABANDONED'],
       default: 'LOBBY'
     },
     config: {
@@ -127,6 +127,17 @@ const matchSchema = new mongoose.Schema(
       enum: ['HOST', 'GUEST', 'TIE', null],
       default: null
     },
+    terminationReason: {
+      type: String,
+      enum: ['CLINCH_VICTORY', 'TIME_EXPIRED', null],
+      default: null
+    },
+    hostRatingBefore: { type: Number, default: null },
+    hostRatingAfter: { type: Number, default: null },
+    hostDelta: { type: Number, default: null },
+    guestRatingBefore: { type: Number, default: null },
+    guestRatingAfter: { type: Number, default: null },
+    guestDelta: { type: Number, default: null },
     startTime: {
       type: Date,
       default: null

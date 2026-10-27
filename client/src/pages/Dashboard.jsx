@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { ArrowUpRight, BadgeCheck, Crosshair, Crown, Plus, Swords, Target, Trophy, Users } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, BadgeCheck, Clock3, Crosshair, Crown, LoaderCircle, Plus, Swords, Target, Trophy, Users } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import VerifyHandleModal from '../components/VerifyHandleModal'
@@ -17,7 +17,7 @@ function MetricCard({ label, value, note, icon: Icon, accent = false }) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [showVerification, setShowVerification] = useState(false)
   const [showCreateDuel, setShowCreateDuel] = useState(false)
@@ -25,6 +25,32 @@ export default function Dashboard() {
   const [notice, setNotice] = useState('')
   const [noticeType, setNoticeType] = useState('error')
   const [joining, setJoining] = useState(false)
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [historyError, setHistoryError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    api.get('/matches/user/history')
+      .then(({ data }) => {
+        if (active) setHistory(Array.isArray(data.matches) ? data.matches.slice(0, 5) : [])
+      })
+      .catch((requestError) => {
+        if (active) {
+          setHistoryError(requestError.response?.data?.message || requestError.message || 'Could not load combat history.')
+        }
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false)
+      })
+    refreshUser().catch((requestError) => {
+      if (active) {
+        setNoticeType('error')
+        setNotice(requestError.response?.data?.message || 'Could not refresh your latest rating profile.')
+      }
+    })
+    return () => { active = false }
+  }, [refreshUser])
 
   const stats = user?.stats || {}
   const totalMatches = Number(stats.totalMatches || 0)
@@ -147,11 +173,38 @@ export default function Dashboard() {
 
       <section className="battle-history">
         <div className="section-heading"><span>RECENT BATTLES</span><span>LAST 05 / MATCH LOG</span></div>
-        <div className="empty-history">
-          <Target size={29} strokeWidth={1.4} />
-          <p>NO COMBAT LOGS YET.</p>
-          <span>HOST OR JOIN A DUEL TO RECORD YOUR FIRST MATCH.</span>
-        </div>
+        {historyLoading ? (
+          <div className="history-state"><LoaderCircle className="spin" size={20} /><span>LOADING COMBAT RECORDS...</span></div>
+        ) : historyError ? (
+          <div className="history-state history-error" role="alert">{historyError}</div>
+        ) : history.length ? (
+          <div className="combat-log-list">
+            {history.map((match) => {
+              const isHost = match.host?._id?.toString() === user?._id?.toString()
+              const opponent = isHost ? match.guest : match.host
+              const side = isHost ? 'HOST' : 'GUEST'
+              const result = match.winner === 'TIE' ? 'TIE' : match.winner === side ? 'VICTORY' : 'DEFEAT'
+              const delta = isHost ? match.hostDelta : match.guestDelta
+              return (
+                <Link className="combat-log-row" key={match._id} to={`/match/${encodeURIComponent(match.roomCode)}`}>
+                  <span className="combat-log-avatar">{(opponent?.cfHandle || opponent?.username || '?').slice(0, 1).toUpperCase()}</span>
+                  <span className="combat-log-opponent"><strong>{opponent?.cfHandle || opponent?.username || 'OPPONENT'}</strong><small>{opponent?.username ? `@${opponent.username}` : `ROOM // ${match.roomCode}`}</small></span>
+                  <span className={`combat-log-result result-${result.toLowerCase()}`}>{result}</span>
+                  <span className="combat-log-score">{Number(match.scores?.hostScore || 0).toLocaleString()} <i>—</i> {Number(match.scores?.guestScore || 0).toLocaleString()}</span>
+                  <span className={`combat-log-delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : ''}`}>{Number.isFinite(delta) ? `${delta > 0 ? '+' : ''}${delta}` : '—'}</span>
+                  <span className="combat-log-date"><Clock3 size={12} />{new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(match.endTime || match.createdAt))}</span>
+                  <ArrowUpRight aria-hidden="true" className="combat-log-open" size={15} />
+                </Link>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="empty-history">
+            <Target size={29} strokeWidth={1.4} />
+            <p>NO COMBAT LOGS YET.</p>
+            <span>HOST OR JOIN A DUEL TO RECORD YOUR FIRST MATCH.</span>
+          </div>
+        )}
       </section>
 
       <footer className="dashboard-footer"><span>LOCKEDIN // ARENA</span><span>NO GLORY WITHOUT THE GRIND.</span></footer>

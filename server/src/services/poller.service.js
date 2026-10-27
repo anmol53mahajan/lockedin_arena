@@ -1,8 +1,9 @@
 const Match = require('../models/Match');
 const { fetchUserSubmissions } = require('./codeforces.service');
+const { finalizeMatch } = require('./elo.service');
 
 const POLL_INTERVAL_MS = 13000;
-const MATCH_SELECT = 'roomCode host guest status problems scores startTime endTime config.durationMinutes';
+const MATCH_SELECT = 'roomCode host guest status problems scores startTime endTime terminationReason config.durationMinutes';
 let pollInterval = null;
 let socketServer = null;
 let pollInProgress = false;
@@ -12,9 +13,19 @@ function roomName(roomCode) {
   return `arena:${roomCode}`;
 }
 
-function getWinner(hostScore, guestScore) {
-  if (hostScore === guestScore) return 'TIE';
-  return hostScore > guestScore ? 'HOST' : 'GUEST';
+function emitSettled(io, settlement) {
+  const room = io.to(roomName(settlement.roomCode));
+  room.emit('match-ended', {
+    reason: settlement.terminationReason,
+    winner: settlement.winner,
+    scores: settlement.scores
+  });
+  room.emit('match-settled', {
+    matchId: settlement.matchId,
+    roomCode: settlement.roomCode,
+    winner: settlement.winner,
+    deltas: settlement.deltas
+  });
 }
 
 function getAcceptedSubmission(submissions, problem, startSeconds) {
@@ -38,23 +49,9 @@ async function loadSubmissions(handle, cache) {
 }
 
 async function expireMatch(match, io) {
-  const finished = await Match.findOneAndUpdate(
-    { _id: match._id, status: 'ACTIVE', endTime: { $lte: new Date() } },
-    {
-      $set: {
-        status: 'FINISHED',
-        winner: getWinner(match.scores.hostScore, match.scores.guestScore)
-      }
-    },
-    { returnDocument: 'after' }
-  ).select('roomCode winner scores');
-
-  if (!finished) return false;
-  io.to(roomName(finished.roomCode)).emit('match-ended', {
-    reason: 'TIME_EXPIRED',
-    winner: finished.winner,
-    scores: finished.scores
-  });
+  const settlement = await finalizeMatch(match._id, 'TIME_EXPIRED');
+  if (!settlement?.newlyFinalized) return false;
+  emitSettled(io, settlement);
   return true;
 }
 
@@ -68,7 +65,13 @@ async function processMatch(matchId, io, submissionCache = new Map()) {
       .select(MATCH_SELECT)
       .populate('host', 'cfHandle')
       .populate('guest', 'cfHandle');
-    if (!match || match.status !== 'ACTIVE') return;
+    if (!match) return;
+    if (match.status === 'SETTLING') {
+      const settlement = await finalizeMatch(match._id, match.terminationReason);
+      if (settlement?.newlyFinalized) emitSettled(io, settlement);
+      return;
+    }
+    if (match.status !== 'ACTIVE') return;
 
     if (match.endTime && match.endTime.getTime() <= Date.now()) {
       await expireMatch(match, io);
@@ -165,26 +168,8 @@ async function processMatch(matchId, io, submissionCache = new Map()) {
         : updatedMatch.scores.guestScore;
 
       if (winnerScore > totalPoints / 2) {
-        const winner = isHostSolver ? 'HOST' : 'GUEST';
-        const finishedMatch = await Match.findOneAndUpdate(
-          { _id: match._id, status: 'ACTIVE' },
-          {
-            $set: {
-              status: 'FINISHED',
-              winner,
-              endTime: now
-            }
-          },
-          { returnDocument: 'after' }
-        ).select('roomCode winner scores');
-
-        if (finishedMatch) {
-          io.to(roomName(match.roomCode)).emit('match-ended', {
-            reason: 'CLINCH_VICTORY',
-            winner: finishedMatch.winner,
-            scores: finishedMatch.scores
-          });
-        }
+        const settlement = await finalizeMatch(match._id, 'CLINCH_VICTORY');
+        if (settlement?.newlyFinalized) emitSettled(io, settlement);
         return;
       }
     }
@@ -200,7 +185,7 @@ async function pollActiveMatches(io) {
   if (pollInProgress) return;
   pollInProgress = true;
   try {
-    const activeMatches = await Match.find({ status: 'ACTIVE' }).select('_id').lean();
+    const activeMatches = await Match.find({ status: { $in: ['ACTIVE', 'SETTLING'] } }).select('_id').lean();
     const submissionCache = new Map();
     await Promise.all(activeMatches.map((match) => processMatch(match._id, io, submissionCache)));
   } catch (error) {

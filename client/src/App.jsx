@@ -6,6 +6,7 @@ import Arena from './pages/Arena'
 import Lobby from './pages/Lobby'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import MatchRecap from './pages/MatchRecap'
 
 function PageLoader() {
   return (
@@ -46,6 +47,7 @@ function ArenaApp() {
           <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>} path="/dashboard" />
           <Route element={<ProtectedRoute><Lobby /></ProtectedRoute>} path="/lobby/:roomCode" />
           <Route element={<ProtectedRoute><Arena /></ProtectedRoute>} path="/arena/:roomCode" />
+          <Route element={<ProtectedRoute><MatchRecap /></ProtectedRoute>} path="/match/:roomCode" />
           <Route element={<LandingRedirect />} path="*" />
         </Routes>
       </div>

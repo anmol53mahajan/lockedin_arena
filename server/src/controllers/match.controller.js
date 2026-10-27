@@ -142,7 +142,8 @@ async function getMatchByCode(req, res, next) {
   }
 
   try {
-    const match = await populateParticipants(Match.findOne({ roomCode }));
+    const match = await populateParticipants(Match.findOne({ roomCode }))
+      .populate('problems.solvedBy', 'username cfHandle');
     if (!match) {
       return res.status(404).json({ success: false, message: 'Match room was not found' });
     }
@@ -215,7 +216,7 @@ async function getUserMatchHistory(req, res, next) {
         status: 'FINISHED',
         $or: [{ host: req.user._id }, { guest: req.user._id }]
       }).sort({ createdAt: -1 })
-    );
+    ).populate('problems.solvedBy', 'username cfHandle');
 
     return res.status(200).json({ success: true, matches });
   } catch (error) {
