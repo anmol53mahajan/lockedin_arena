@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const Match = require('../models/Match');
+const { selectMatchProblems } = require('../services/matchmaker.service');
 
 const VALID_DURATIONS = [15, 30, 45, 60];
 const VALID_PROBLEM_COUNTS = [3, 4, 5];
@@ -273,11 +274,19 @@ async function startMatch(req, res, next) {
   }
 
   try {
-    const match = await Match.findOne({ roomCode });
+    const match = await Match.findOne({ roomCode })
+      .populate('host', 'username cfHandle platformRating isVerified')
+      .populate('guest', 'username cfHandle platformRating isVerified');
     if (!match) {
       return res.status(404).json({ success: false, message: 'Match room was not found' });
     }
-    if (!isSameUser(match.host, req.user._id)) {
+    if (!match.host || !match.guest) {
+      return res.status(409).json({
+        success: false,
+        message: 'Both player accounts must still exist before the match can start'
+      });
+    }
+    if (!isSameUser(match.host._id, req.user._id)) {
       return res.status(403).json({ success: false, message: 'Only the host can start the match' });
     }
     if (match.status !== 'LOBBY') {
@@ -287,7 +296,21 @@ async function startMatch(req, res, next) {
       return res.status(409).json({ success: false, message: 'Both players must join and be ready before starting' });
     }
 
-    const startedMatch = await Match.findOneAndUpdate(
+    if (
+      typeof match.host.cfHandle !== 'string' ||
+      !match.host.cfHandle.trim() ||
+      typeof match.guest.cfHandle !== 'string' ||
+      !match.guest.cfHandle.trim() ||
+      !match.host.isVerified ||
+      !match.guest.isVerified
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: 'Both players must have a verified Codeforces handle before the match can start'
+      });
+    }
+
+    const claimedMatch = await Match.findOneAndUpdate(
       {
         _id: match._id,
         status: 'LOBBY',
@@ -295,15 +318,50 @@ async function startMatch(req, res, next) {
         'readyStates.hostReady': true,
         'readyStates.guestReady': true
       },
-      { $set: { status: 'ACTIVE', startTime: new Date() } },
+      { $set: { status: 'STARTING' } },
       { new: true, runValidators: true }
     );
 
-    if (!startedMatch) {
+    if (!claimedMatch) {
       return res.status(409).json({ success: false, message: 'Lobby state changed. Refresh before starting.' });
     }
-    const populatedMatch = await populateParticipants(Match.findById(startedMatch._id));
-    return res.status(200).json({ success: true, match: populatedMatch });
+
+    try {
+      const problems = await selectMatchProblems(
+        match.host.cfHandle,
+        match.guest.cfHandle,
+        match.config.problemTiers
+      );
+      const startTime = new Date();
+      const startedMatch = await Match.findOneAndUpdate(
+        { _id: claimedMatch._id, status: 'STARTING' },
+        {
+          $set: {
+            problems,
+            status: 'ACTIVE',
+            startTime,
+            endTime: new Date(startTime.getTime() + match.config.durationMinutes * 60 * 1000)
+          }
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (!startedMatch) {
+        return res.status(409).json({ success: false, message: 'Match start was interrupted. Refresh the lobby.' });
+      }
+
+      const populatedMatch = await populateParticipants(Match.findById(startedMatch._id));
+      return res.status(200).json({ success: true, match: populatedMatch });
+    } catch (error) {
+      await Match.updateOne(
+        { _id: claimedMatch._id, status: 'STARTING' },
+        { $set: { status: 'LOBBY' } }
+      );
+      return res.status(503).json({
+        success: false,
+        message: `Could not generate the match problem set: ${error.message}`
+      });
+    }
   } catch (error) {
     return next(error);
   }

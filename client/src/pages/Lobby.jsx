@@ -84,6 +84,12 @@ export default function Lobby() {
     return () => window.clearInterval(intervalId)
   }, [matchStatus, loadMatch])
 
+  useEffect(() => {
+    if (matchStatus === 'ACTIVE') {
+      navigate(`/arena/${encodeURIComponent(roomCode)}`, { replace: true })
+    }
+  }, [matchStatus, navigate, roomCode])
+
   async function copyRoomCode() {
     try {
       await navigator.clipboard.writeText(roomCode)
@@ -118,6 +124,9 @@ export default function Lobby() {
     try {
       const { data } = await api.post(`/matches/${encodeURIComponent(roomCode)}/start`)
       setMatch(data.match)
+      if (data.match?.status === 'ACTIVE') {
+        navigate(`/arena/${encodeURIComponent(roomCode)}`, { replace: true })
+      }
     } catch (requestError) {
       setError(requestError.response?.data?.message || requestError.message || 'Could not start this match.')
     } finally {
@@ -236,7 +245,15 @@ export default function Lobby() {
           </section>
 
           <section className="lobby-action-center">
-            {matchStarted ? (
+            {busyAction === 'start' ? (
+              <div aria-live="polite" className="matchmaker-loader" role="status">
+                <span className="loader-ring" />
+                <div>
+                  <strong>ANALYZING COMBATANT SUBMISSION HISTORIES</strong>
+                  <span>GENERATING UNBIASED PROBLEM SET...</span>
+                </div>
+              </div>
+            ) : matchStarted ? (
               <div className="match-started-banner">
                 <span className="pulse-dot" />
                 <div><strong>MATCH INITIALIZED</strong><span>Lobby locked at {match.startTime ? new Date(match.startTime).toLocaleTimeString() : 'now'}.</span></div>

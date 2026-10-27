@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Dashboard from './pages/Dashboard'
+import Arena from './pages/Arena'
 import Lobby from './pages/Lobby'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -44,6 +45,7 @@ function ArenaApp() {
           <Route element={<GuestRoute><Register /></GuestRoute>} path="/register" />
           <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>} path="/dashboard" />
           <Route element={<ProtectedRoute><Lobby /></ProtectedRoute>} path="/lobby/:roomCode" />
+          <Route element={<ProtectedRoute><Arena /></ProtectedRoute>} path="/arena/:roomCode" />
           <Route element={<LandingRedirect />} path="*" />
         </Routes>
       </div>

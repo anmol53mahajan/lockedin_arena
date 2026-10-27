@@ -375,6 +375,35 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .match-started-banner span:not(.pulse-dot) { color: #aaa8a1; font-size: 10px; }
 .lobby-unavailable { min-height: 55vh; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .lobby-unavailable h1 { margin-bottom: 24px; }
+.matchmaker-loader { display: flex; width: 100%; align-items: center; justify-content: center; gap: 18px; border-left: 3px solid #ed3029; padding: 18px; background: rgba(237,48,41,.08); }
+.matchmaker-loader>div { display: flex; flex-direction: column; gap: 7px; }
+.matchmaker-loader>div strong { color: #f3f0e9; font: 900 10px "Courier New",monospace; letter-spacing: .08em; }
+.matchmaker-loader>div span { color: #ed716a; font: 9px "Courier New",monospace; letter-spacing: .1em; }
+
+.arena-live-page { max-width: 1080px; min-height: 70vh; margin: 0 auto; padding: clamp(28px,5vw,62px) clamp(18px,5.5vw,72px) 25px; }
+.arena-live-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #aaa8a1; font: 10px "Courier New",monospace; letter-spacing: .14em; }
+.arena-live-loading svg { color: #ed514a; }
+.arena-live-header { display: grid; grid-template-columns: 1fr minmax(205px,.55fr); align-items: end; gap: 25px; border-bottom: 1px solid rgba(243,240,233,.17); padding-bottom: 25px; }
+.arena-live-header h1 { margin: 23px 0 0; font: 900 clamp(65px,9vw,108px)/.79 Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; }
+.arena-live-header h1 span { color: #ed3029; }
+.arena-clock { border: 1px solid rgba(237,48,41,.42); padding: 15px; background: rgba(237,48,41,.06); }
+.arena-clock>span { display: flex; align-items: center; gap: 8px; color: #ed716a; font: 9px "Courier New",monospace; letter-spacing: .1em; }
+.arena-clock>strong { display: block; margin-top: 9px; color: #f3f0e9; font: 900 clamp(29px,5vw,42px) "Courier New",monospace; letter-spacing: .08em; }
+.arena-live-score { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; gap: 12px; margin: 19px 0 29px; }
+.arena-live-score>div { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid rgba(243,240,233,.17); padding: 12px 15px; background: rgba(255,255,255,.025); }
+.arena-live-score>div span { overflow: hidden; color: #c2bfb9; font: 800 10px "Courier New",monospace; text-overflow: ellipsis; text-transform: uppercase; }
+.arena-live-score>div strong { color: #f3f0e9; font: 22px Impact,Haettenschweiler,sans-serif; }
+.arena-live-score>svg { justify-self: center; color: #ed514a; }
+.arena-problems { margin-top: 15px; }
+.arena-problem-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 10px; }
+.arena-problem-card { min-width: 0; border: 1px solid rgba(243,240,233,.17); padding: 16px; background: linear-gradient(140deg,rgba(28,29,29,.75),rgba(11,12,12,.7)); }
+.arena-problem-top { display: flex; justify-content: space-between; gap: 10px; color: #8d8e88; font: 8px "Courier New",monospace; letter-spacing: .08em; }
+.arena-problem-card h2 { min-height: 45px; margin: 16px 0; color: #f3f0e9; font: 22px Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; }
+.arena-problem-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(243,240,233,.13); padding-top: 12px; }
+.arena-problem-bottom>strong { color: #ff7770; font: 900 11px "Courier New",monospace; }
+.arena-problem-bottom>a { display: flex; align-items: center; gap: 6px; color: #f3f0e9; font: 800 8px "Courier New",monospace; text-decoration: none; }
+.arena-problem-bottom>a:hover { color: #ff7770; }
+.arena-live-page>.dashboard-footer { margin-top: 27px; }
 
 @keyframes radar-pulse { 0% { opacity: .8; transform: scale(.35); } 100% { opacity: 0; transform: scale(1.7); } }
 
@@ -408,6 +437,17 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .versus-mark { top: 50%; }
   .lobby-buttons { flex-direction: column; }
   .lobby-buttons .action-button { flex: auto; width: 100%; }
+  .arena-live-page { padding: 31px 14px 19px; }
+  .arena-live-header { grid-template-columns: 1fr; gap: 18px; }
+  .arena-live-header h1 { font-size: 71px; }
+  .arena-live-score { grid-template-columns: 1fr 28px 1fr; gap: 5px; }
+  .arena-live-score>div { padding: 10px 8px; }
+  .arena-live-score>div span { font-size: 8px; }
+  .arena-live-score>div strong { font-size: 18px; }
+  .arena-problem-grid { grid-template-columns: 1fr; }
+  .matchmaker-loader { align-items: flex-start; justify-content: flex-start; padding: 13px; }
+  .matchmaker-loader>div strong { font-size: 8px; line-height: 1.5; }
+  .matchmaker-loader>div span { font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
