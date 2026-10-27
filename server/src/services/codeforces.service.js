@@ -27,6 +27,41 @@ function describeApiFailure(error) {
   return `Codeforces request failed: ${error.message}`;
 }
 
+async function fetchWithRetry(url, config, endpointLabel) {
+  let lastError;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await axios.get(url, {
+        ...config,
+        timeout: REQUEST_TIMEOUT_MS
+      });
+
+      if (response.status === 429) {
+        const rateLimitError = new Error('Codeforces rate limit reached (HTTP 429)');
+        rateLimitError.response = response;
+        throw rateLimitError;
+      }
+
+      if (response.data.status !== 'OK') {
+        const apiComment = response.data.comment ? `: ${response.data.comment}` : '';
+        throw new Error(`Codeforces ${endpointLabel} API returned ${response.data.status || 'an invalid response'}${apiComment}`);
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await delay(USER_STATUS_RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  throw new Error(
+    `Unable to fetch Codeforces ${endpointLabel} after 2 attempts: ${describeApiFailure(lastError)}`,
+    { cause: lastError }
+  );
+}
+
 async function fetchProblemset() {
   if (problemsetCache && Date.now() < problemsetCacheExpiresAt) {
     return problemsetCache;
@@ -35,12 +70,13 @@ async function fetchProblemset() {
     return problemsetRequest;
   }
 
-  problemsetRequest = axios.get(`${CODEFORCES_API}/problemset.problems`, {
-    timeout: REQUEST_TIMEOUT_MS
-  })
+  problemsetRequest = fetchWithRetry(
+    `${CODEFORCES_API}/problemset.problems`,
+    {},
+    'problemset'
+  )
     .then((response) => {
       if (
-        response.data.status !== 'OK' ||
         !response.data.result ||
         !Array.isArray(response.data.result.problems)
       ) {
@@ -79,49 +115,45 @@ async function fetchUserSolvedProblems(handle) {
     throw new TypeError('A Codeforces handle is required to fetch solved problems');
   }
 
-  const normalizedHandle = handle.trim();
-  let lastError;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const response = await axios.get(`${CODEFORCES_API}/user.status`, {
-        params: { handle: normalizedHandle },
-        timeout: REQUEST_TIMEOUT_MS
-      });
-
-      if (response.data.status !== 'OK' || !Array.isArray(response.data.result)) {
-        const apiComment = response.data.comment ? `: ${response.data.comment}` : '';
-        throw new Error(`Codeforces user.status API returned ${response.data.status || 'an invalid response'}${apiComment}`);
-      }
-
-      const solvedProblems = new Set();
-      for (const submission of response.data.result) {
-        const problem = submission.problem;
-        if (
-          submission.verdict === 'OK' &&
-          problem &&
-          Number.isInteger(problem.contestId) &&
-          typeof problem.index === 'string'
-        ) {
-          solvedProblems.add(`${problem.contestId}-${problem.index}`);
-        }
-      }
-      return solvedProblems;
-    } catch (error) {
-      lastError = error;
-      if (attempt === 0) {
-        await delay(USER_STATUS_RETRY_DELAY_MS);
-      }
+  const submissions = await fetchUserSubmissions(handle);
+  const solvedProblems = new Set();
+  for (const submission of submissions) {
+    const problem = submission.problem;
+    if (
+      submission.verdict === 'OK' &&
+      problem &&
+      Number.isInteger(problem.contestId) &&
+      typeof problem.index === 'string'
+    ) {
+      solvedProblems.add(`${problem.contestId}-${problem.index}`);
     }
   }
 
-  throw new Error(
-    `Unable to fetch solved problems for Codeforces handle "${normalizedHandle}" after 2 attempts: ${describeApiFailure(lastError)}`,
-    { cause: lastError }
+  return solvedProblems;
+}
+
+async function fetchUserSubmissions(handle, from = 1, count = 10) {
+  if (typeof handle !== 'string' || !handle.trim()) {
+    throw new TypeError('A Codeforces handle is required to fetch submissions');
+  }
+  if (!Number.isInteger(from) || from < 1 || !Number.isInteger(count) || count < 1 || count > 1000) {
+    throw new TypeError('Submission range must use a positive start index and a count between 1 and 1000');
+  }
+
+  const normalizedHandle = handle.trim();
+  const response = await fetchWithRetry(
+    `${CODEFORCES_API}/user.status`,
+    { params: { handle: normalizedHandle, from, count } },
+    `user.status for "${normalizedHandle}"`
   );
+  if (!Array.isArray(response.data.result)) {
+    throw new Error(`Codeforces user.status for "${normalizedHandle}" returned an invalid submissions list`);
+  }
+  return response.data.result;
 }
 
 module.exports = {
   fetchProblemset,
-  fetchUserSolvedProblems
+  fetchUserSolvedProblems,
+  fetchUserSubmissions
 };

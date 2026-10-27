@@ -6,6 +6,8 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const matchRoutes = require('./routes/match.routes');
+const configureDuelSockets = require('./sockets/duel.socket');
+const { startPoller, stopPoller } = require('./services/poller.service');
 
 dotenv.config();
 
@@ -16,9 +18,12 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST', 'PATCH'],
+    credentials: true
   }
 });
+
+configureDuelSockets(io);
 
 // Middleware
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
@@ -29,15 +34,6 @@ app.use('/api/matches', matchRoutes);
 // Health Check Route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Lockout Arena API', timestamp: new Date() });
-});
-
-// Basic Socket connection listener
-io.on('connection', (socket) => {
-  console.log(`[Socket] User connected: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`[Socket] User disconnected: ${socket.id}`);
-  });
 });
 
 app.use((err, req, res, next) => {
@@ -63,8 +59,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+server.once('close', stopPoller);
+
 connectDB()
   .then(() => {
+    startPoller(io);
     server.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
     });
