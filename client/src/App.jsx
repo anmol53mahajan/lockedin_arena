@@ -1,21 +1,60 @@
-import React from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import Navbar from './components/Navbar'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import Dashboard from './pages/Dashboard'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
-function App() {
+function PageLoader() {
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center p-6">
-      <div className="max-w-xl text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight text-blue-500">
-          Lockout Arena ⚔️
-        </h1>
-        <p className="text-gray-400">
-          Real-time 1v1 Competitive Programming Lockout Duels with Verification & Rating Engine.
-        </p>
-        <div className="inline-block px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg text-sm font-medium">
-          Frontend & Environment initialized successfully
-        </div>
-      </div>
+    <div aria-label="Loading player profile" className="page-loader" role="status">
+      <span className="loader-ring" />
+      <span>SYNCING ARENA PROFILE...</span>
     </div>
-  );
+  )
 }
 
-export default App;
+function LandingRedirect() {
+  const { user, loading } = useAuth()
+  if (loading) return <PageLoader />
+  return <Navigate replace to={user ? '/dashboard' : '/login'} />
+}
+
+function GuestRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <PageLoader />
+  return user ? <Navigate replace to="/dashboard" /> : children
+}
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <PageLoader />
+  return user ? children : <Navigate replace to="/login" />
+}
+
+function ArenaApp() {
+  return (
+    <div className="arena-frame">
+      <div className="arena-viewport">
+        <Navbar />
+        <Routes>
+          <Route element={<LandingRedirect />} path="/" />
+          <Route element={<GuestRoute><Login /></GuestRoute>} path="/login" />
+          <Route element={<GuestRoute><Register /></GuestRoute>} path="/register" />
+          <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>} path="/dashboard" />
+          <Route element={<LandingRedirect />} path="*" />
+        </Routes>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <ArenaApp />
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
