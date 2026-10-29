@@ -27,7 +27,7 @@
 .podium-card-top { position: absolute; top: 14px; right: 15px; left: 17px; display: flex; justify-content: space-between; color: #ed3029; }
 .podium-rank { font: 700 10px "Courier New",monospace; letter-spacing: .1em; }
 .podium-name { overflow: hidden; color: #f3f0e9; font-size: 18px; text-overflow: ellipsis; white-space: nowrap; }
-.podium-handle { margin-top: 4px; overflow: hidden; color: #7d7e79; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.podium-handle { display: flex; align-items: center; gap: 8px; margin-top: 4px; overflow: hidden; color: #7d7e79; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .podium-rating { margin-top: 13px; color: #f3f0e9; font: 900 30px/.95 Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; }
 .podium-rating small { color: #ed3029; font: 700 9px "Courier New",monospace; }
 .podium-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
@@ -50,7 +50,7 @@
 .leaderboard-player-name { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
 .leaderboard-player-name strong { overflow: hidden; max-width: 150px; font-size: 11px; text-overflow: ellipsis; }
 .leaderboard-player-name small,.leaderboard-rating small,.leaderboard-record small { color: #777873; font-size: 8px; white-space: nowrap; }
-.leaderboard-verified { flex: 0 0 auto; color: #6bcf97; }
+.leaderboard-verified-label { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; border: 1px solid rgba(107,207,151,.3); padding: 3px 5px; color: #6bcf97; font: 700 7px "Courier New",monospace; letter-spacing: .04em; white-space: nowrap; }
 .leaderboard-rating,.leaderboard-record { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
 .leaderboard-rating strong { font: 900 18px Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; }
 .leaderboard-rating small { color: #777873; }

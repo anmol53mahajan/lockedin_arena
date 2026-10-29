@@ -23,7 +23,10 @@ function PodiumCard({ player }) {
         {player.rank === 1 && <Crown aria-label="First place" size={17} />}
       </div>
       <strong className="podium-name">{player.username}</strong>
-      <span className="podium-handle">{player.cfHandle ? `# ${player.cfHandle}` : 'NO CF HANDLE LINKED'}</span>
+      <span className="podium-handle">
+        {player.cfHandle ? `# ${player.cfHandle}` : 'NO CF HANDLE LINKED'}
+        {player.isVerified && <span className="leaderboard-verified-label"><BadgeCheck aria-hidden="true" size={12} /> CF VERIFIED</span>}
+      </span>
       <div className="podium-rating">{formatNumber(player.platformRating)} <small>ELO</small></div>
       <div className="podium-meta">
         <TierBadge tier={player.tier} />
@@ -45,7 +48,11 @@ function LeaderboardRow({ player }) {
             <strong>{player.username}</strong>
             <small>{player.cfHandle ? `# ${player.cfHandle}` : 'NO CF HANDLE'}</small>
           </span>
-          {player.isVerified && <BadgeCheck aria-label="Verified Codeforces handle" className="leaderboard-verified" size={15} />}
+          {player.isVerified && (
+            <span className="leaderboard-verified-label">
+              <BadgeCheck aria-hidden="true" size={13} /> CF VERIFIED
+            </span>
+          )}
         </div>
       </td>
       <td className="leaderboard-rating">

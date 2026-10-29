@@ -30,7 +30,7 @@ async function getGlobalLeaderboard(req, res, next) {
   const page = parsePage(req.query.page, 1);
   const limit = parsePage(req.query.limit, 20, 50);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-  const filter = {};
+  const filter = { isVerified: true };
 
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
