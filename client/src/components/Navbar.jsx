@@ -1,5 +1,5 @@
-import { Activity, BadgeCheck, LogOut, ShieldAlert, Swords } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Activity, BadgeCheck, LogOut, ShieldAlert, Swords, Trophy } from 'lucide-react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
@@ -20,6 +20,9 @@ export default function Navbar() {
       </Link>
 
       <div className="nav-right">
+        <NavLink aria-label="Global leaderboard" className="nav-link leaderboard-nav-link" to="/leaderboard">
+          <Trophy aria-hidden="true" size={14} /> <span>LEADERBOARD</span>
+        </NavLink>
         {!loading && user ? (
           <>
             <span className={`status-chip ${user.isVerified ? 'status-verified' : 'status-unverified'}`}>

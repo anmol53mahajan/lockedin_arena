@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const matchRoutes = require('./routes/match.routes');
+const leaderboardRoutes = require('./routes/leaderboard.routes');
 const configureDuelSockets = require('./sockets/duel.socket');
 const { startPoller, stopPoller } = require('./services/poller.service');
 
@@ -38,6 +39,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10kb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health Check Route
 app.get('/api/health', (req, res) => {

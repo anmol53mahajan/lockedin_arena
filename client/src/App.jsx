@@ -7,6 +7,7 @@ import Lobby from './pages/Lobby'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import MatchRecap from './pages/MatchRecap'
+import Leaderboard from './pages/Leaderboard'
 
 function PageLoader() {
   return (
@@ -44,6 +45,7 @@ function ArenaApp() {
           <Route element={<LandingRedirect />} path="/" />
           <Route element={<GuestRoute><Login /></GuestRoute>} path="/login" />
           <Route element={<GuestRoute><Register /></GuestRoute>} path="/register" />
+          <Route element={<Leaderboard />} path="/leaderboard" />
           <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>} path="/dashboard" />
           <Route element={<ProtectedRoute><Lobby /></ProtectedRoute>} path="/lobby/:roomCode" />
           <Route element={<ProtectedRoute><Arena /></ProtectedRoute>} path="/arena/:roomCode" />
