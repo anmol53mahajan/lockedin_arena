@@ -27,6 +27,7 @@ LockedIn Arena pairs two verified players in a synchronized 1v1 lockout arena. T
 3. **Ready up and start.** Each player marks themselves ready in the lobby. The host can start once both players have joined and are ready. The server chooses problems, stores them with the match, and sets the authoritative start and end times.
 4. **Compete on Codeforces.** Both players receive the same problem set, with direct Codeforces links. A correct submission claims that problem's points for its solver and locks the problem so it cannot score again. The first accepted solve wins that problem; if both players solve between checks, the earlier Codeforces submission timestamp wins. The match can finish early when a player scores strictly more than half of all available problem points; otherwise it ends when time expires.
 5. **Review the result.** The server finalizes the outcome, updates both Elo ratings and career records, and stores the result. The match recap shows scores, rating changes, winner or tie, each problem's solve status and solver, and a shareable recap URL. The dashboard shows recent match history and current platform rating.
+6. **Climb the global leaderboard.** The public leaderboard ranks Codeforces-verified competitors by platform Elo, with wins as the tiebreaker. It shows each player's rank, current and peak rating, combat record, win rate, and rating tier. Search by username or Codeforces handle and browse results with pagination. Unverified accounts are excluded from both results and totals.
 
 ## Codeforces API and problem chooser
 
@@ -55,11 +56,12 @@ The Codeforces API provides problem and submission data; it does not judge code 
 
 ## Application routes and API
 
-The React single-page application exposes these routes (all except login and registration require authentication):
+The React single-page application exposes these routes (all except login, registration, and the public leaderboard require authentication):
 
 | Route | Purpose |
 | --- | --- |
 | `/login`, `/register` | Account access |
+| `/leaderboard` | Public, searchable and paginated rankings of Codeforces-verified competitors |
 | `/dashboard` | Player profile, Elo/record, create/join duel, recent match history |
 | `/lobby/:roomCode` | Join/readiness and host start flow |
 | `/arena/:roomCode` | Live match, timer, problems, score, and submission sync |
@@ -73,6 +75,7 @@ Backend routes are mounted under `/api`:
 | `POST /api/auth/register`, `POST /api/auth/login` | Register or authenticate; return a JWT |
 | `GET /api/auth/me` | Load the authenticated player profile |
 | `POST /api/auth/cf/initiate`, `POST /api/auth/cf/confirm` | Start and confirm Codeforces handle verification |
+| `GET /api/leaderboard` | Public leaderboard of verified users; accepts `page` (default `1`), `limit` (default `20`, maximum `50`), and optional `search` (username or Codeforces handle) |
 | `POST /api/matches` | Create a lobby with duration and problem tiers |
 | `POST /api/matches/join` | Join a lobby using its room code |
 | `PATCH /api/matches/:roomCode/ready` | Update the current participant's ready state |
